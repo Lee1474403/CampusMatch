@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: campusmatch
+      POSTGRES_USER: campusmatch
+      POSTGRES_PASSWORD: campusmatch
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campusmatch -d campusmatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ENVIRONMENT: production
+      SECRET_KEY: ${SECRET_KEY:-replace-this-secret-before-production}
+      DATABASE_URL: postgresql+asyncpg://campusmatch:campusmatch@db:5432/campusmatch
+      FRONTEND_URL: http://localhost:8080
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      DASHSCOPE_MODEL: ${DASHSCOPE_MODEL:-qwen-max}
+      DASHSCOPE_BASE_URL: ${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      DEEP_MATCH_CANDIDATE_POOL_SIZE: ${DEEP_MATCH_CANDIDATE_POOL_SIZE:-10}
+      DEEP_MATCH_MAX_DAILY_CALLS: ${DEEP_MATCH_MAX_DAILY_CALLS:-10}
+      DEEP_MATCH_MIN_FINAL_SCORE: ${DEEP_MATCH_MIN_FINAL_SCORE:-60}
+      DEEP_MATCH_PRELIMINARY_WEIGHT: ${DEEP_MATCH_PRELIMINARY_WEIGHT:-0.4}
+      DEEP_MATCH_MODEL_WEIGHT: ${DEEP_MATCH_MODEL_WEIGHT:-0.6}
+      DEEP_MATCH_TIMEOUT_SECONDS: ${DEEP_MATCH_TIMEOUT_SECONDS:-45}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-no-reply@campusmatch.local}
+    volumes:
+      - uploads_data:/app/backend/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres_data:
+  uploads_data:
