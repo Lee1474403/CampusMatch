@@ -32,6 +32,8 @@ class UserProfile(UserSummary):
     location_city: str | None = None
     hometown_province: str | None = None
     hometown_city: str | None = None
+    height_cm: int | None = Field(default=None, ge=100, le=250)
+    weight_kg: float | None = Field(default=None, ge=30, le=300)
     bio: str | None = None
     interests: list[InterestOut] = Field(default_factory=list)
 
@@ -72,6 +74,8 @@ class ProfileUpdate(BaseModel):
     location_city: str | None = Field(default=None, min_length=1, max_length=40)
     hometown_province: str | None = Field(default=None, min_length=1, max_length=40)
     hometown_city: str | None = Field(default=None, min_length=1, max_length=40)
+    height_cm: int | None = Field(default=None, ge=100, le=250)
+    weight_kg: float | None = Field(default=None, ge=30, le=300)
     bio: str | None = Field(default=None, max_length=200)
     interest_ids: list[int] | None = None
 

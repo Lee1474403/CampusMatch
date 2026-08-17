@@ -67,6 +67,8 @@ def profile_from_user(user: User, *, full: bool = True) -> UserProfile:
         location_city=user.location_city,
         hometown_province=user.hometown_province,
         hometown_city=user.hometown_city,
+        height_cm=user.height_cm,
+        weight_kg=user.weight_kg,
         bio=user.bio,
         interests=[InterestOut.model_validate(interest) for interest in user.interests],
     )

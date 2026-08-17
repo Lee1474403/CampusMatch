@@ -27,7 +27,7 @@ const blockedUsers = ref([])
 const passwordForm = reactive({ current_password: '', new_password: '' })
 const form = reactive({
   phone: '', email: '', nickname: '', real_name: '', wechat: '', birth_date: '', department: '', grade: '',
-  school: '',
+  school: '', height_cm: null, weight_kg: null,
   location_province: '', location_city: '', hometown_province: '', hometown_city: '', bio: '', interest_ids: [],
 })
 
@@ -120,6 +120,7 @@ function fillForm(user) {
   Object.assign(form, {
     phone: user.phone || '', email: user.email || '', nickname: user.nickname || '', real_name: user.real_name || '', wechat: user.wechat || '',
     birth_date: user.birth_date || '', school: user.school || '', department: user.department || '', grade: user.grade || '',
+    height_cm: user.height_cm ?? null, weight_kg: user.weight_kg ?? null,
     location_province: user.location_province || '', location_city: user.location_city || '',
     hometown_province: user.hometown_province || '', hometown_city: user.hometown_city || '', bio: user.bio || '',
     interest_ids: user.interests?.map((item) => item.id) || [],
@@ -298,8 +299,8 @@ onMounted(() => load().catch((error) => ElMessage.error(errorMessage(error))))
             <p><b>{{ questionnaireStatus?.completed ? '深度匹配已启用' : '解锁深度匹配' }}</b><small>{{ questionnaireStatus?.completed ? '价值观问卷已完成，可参与深度适配精排' : `${questionnaireStatus?.answered_count || 0}/${questionnaireStatus?.total_questions || 26} 题 · 自愿填写` }}</small></p>
             <i>→</i>
           </router-link>
-          <div class="identity-lines"><span><b>账号</b>{{ auth.user?.account }}</span><span><b>性别</b>{{ auth.user?.gender === 'male' ? '男生' : '女生' }}</span><span><b>年龄</b>{{ auth.user?.age }} 岁</span><span><b>学校</b>{{ auth.user?.school || '待完善' }}</span><span><b>专业/院系</b>{{ auth.user?.department || '未填写' }}</span><span><b>所在地</b>{{ auth.user?.location_province && auth.user?.location_city ? `${auth.user.location_province} · ${auth.user.location_city}` : '待完善' }}</span><span><b>家乡</b>{{ auth.user?.hometown_province && auth.user?.hometown_city ? `${auth.user.hometown_province} · ${auth.user.hometown_city}` : '待完善' }}</span></div>
-          <p class="privacy-note">🛡️ 账号和性别不可修改，账号不会向其他用户公开。联系方式和真实照片只有在双方心动并连续聊天满7天后才会公开。</p>
+          <div class="identity-lines"><span><b>账号</b>{{ auth.user?.account }}</span><span><b>性别</b>{{ auth.user?.gender === 'male' ? '男生' : '女生' }}</span><span><b>年龄</b>{{ auth.user?.age }} 岁</span><span><b>身高</b>{{ auth.user?.height_cm ? `${auth.user.height_cm} cm` : '未填写' }}</span><span><b>体重</b>{{ auth.user?.weight_kg ? `${auth.user.weight_kg} kg` : '未填写' }}</span><span><b>学校</b>{{ auth.user?.school || '待完善' }}</span><span><b>专业/院系</b>{{ auth.user?.department || '未填写' }}</span><span><b>所在地</b>{{ auth.user?.location_province && auth.user?.location_city ? `${auth.user.location_province} · ${auth.user.location_city}` : '待完善' }}</span><span><b>家乡</b>{{ auth.user?.hometown_province && auth.user?.hometown_city ? `${auth.user.hometown_province} · ${auth.user.hometown_city}` : '待完善' }}</span></div>
+          <p class="privacy-note">🛡️ 身高和体重属于公开资料，会显示在推荐卡片中。账号不会向其他用户公开；联系方式和真实照片只有在双方心动并连续聊天满7天后才会公开。</p>
           <button class="security-link" @click="passwordDialog = true"><el-icon><Lock /></el-icon> 修改密码</button>
           <button class="logout-link" @click="logout"><el-icon><SwitchButton /></el-icon> 退出登录</button>
         </aside>
@@ -317,6 +318,12 @@ onMounted(() => load().catch((error) => ElMessage.error(errorMessage(error))))
               <el-form-item label="年级 *"><el-input v-model="form.grade" placeholder="例如 大一、研二" /></el-form-item>
               <el-form-item label="学校 *"><el-input v-model="form.school" placeholder="请输入学校全称" /></el-form-item>
               <el-form-item label="专业/院系（可选）"><el-input v-model="form.department" placeholder="如 计算机学院·软件工程" /></el-form-item>
+              <el-form-item label="身高（公开，可选）">
+                <div class="metric-input"><el-input-number v-model="form.height_cm" :min="100" :max="250" :step="1" controls-position="right" placeholder="例如 175" /><span>cm</span></div>
+              </el-form-item>
+              <el-form-item label="体重（公开，可选）">
+                <div class="metric-input"><el-input-number v-model="form.weight_kg" :min="30" :max="300" :step="0.5" :precision="1" controls-position="right" placeholder="例如 65.0" /><span>kg</span></div>
+              </el-form-item>
               <div class="full-field location-field-row">
                 <el-form-item label="当前所在省份 *">
                   <el-select v-model="form.location_province" filterable placeholder="请选择省份或地区">

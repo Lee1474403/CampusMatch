@@ -17,6 +17,14 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint("gender IN ('male', 'female')", name="ck_users_gender"),
+        CheckConstraint(
+            "height_cm IS NULL OR height_cm BETWEEN 100 AND 250",
+            name="ck_users_height_cm_range",
+        ),
+        CheckConstraint(
+            "weight_kg IS NULL OR weight_kg BETWEEN 30 AND 300",
+            name="ck_users_weight_kg_range",
+        ),
         Index("ix_users_gender_active", "gender", "is_active"),
     )
 
@@ -36,6 +44,8 @@ class User(Base):
     location_city: Mapped[str | None] = mapped_column(String(40), nullable=True)
     hometown_province: Mapped[str | None] = mapped_column(String(40), nullable=True)
     hometown_city: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    height_cm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     real_photos: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
     wechat: Mapped[str | None] = mapped_column(String(80), nullable=True)

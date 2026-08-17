@@ -20,6 +20,8 @@ class RegisterRequest(BaseModel):
     school: str = Field(min_length=1, max_length=120)
     department: str | None = Field(default=None, max_length=80)
     grade: str = Field(min_length=1, max_length=24)
+    height_cm: int | None = Field(default=None, ge=100, le=250)
+    weight_kg: float | None = Field(default=None, ge=30, le=300)
 
     @field_validator("password")
     @classmethod

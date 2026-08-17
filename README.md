@@ -51,6 +51,7 @@ Token 控制采用“每周全局调用上限”：默认最多调用 Qwen 10 �
 - 唯一账号、手机号或邮箱登录；JWT access token + refresh token 自动续期
 - bcrypt 密码哈希和密码强度校验
 - 个人资料编辑、9 大分类约 90 个细分兴趣、关键词搜索、头像上传
+- 可选的公开身高（cm）与体重（kg），在推荐卡片和配对资料中展示
 - 最多 6 张真实照片和可选微信号，默认均作为隐私信息
 - 具体标签 Jaccard 相似度为主、分类相似度为辅（兴趣合计 60%）+ 地域相似度（30%，当前所在地与家乡各占地域分50%）+ 年龄接近（10%）
 - 26 道五维恋爱价值观问卷、分组进度、进度保存和完成状态
@@ -98,9 +99,10 @@ backend/migrations/versions/20260730_0008_user_blocks.py
 backend/migrations/versions/20260730_0009_user_school.py
 backend/migrations/versions/20260730_0010_account_rename.py
 backend/migrations/versions/20260817_0011_weekly_recommendations.py
+backend/migrations/versions/20260817_0012_user_body_metrics.py
 ```
 
-迁移会保留原用户、配对和聊天记录；`0011` 新增每周单向推荐表和批次运行记录表。升级前已经存在的 `pending_heartbeat` 配对仍按旧规则完成或失效，新生成的推荐只有在双方选择彼此时才创建正式聊天配对。
+迁移会保留原用户、配对和聊天记录；`0011` 新增每周单向推荐表和批次运行记录表，`0012` 新增可选的公开身高与体重字段。升级前已经存在的 `pending_heartbeat` 配对仍按旧规则完成或失效，新生成的推荐只有在双方选择彼此时才创建正式聊天配对。
 
 学校、所在地和家乡等必填资料完整后才能开启每周匹配；专业/院系可以留空。
 

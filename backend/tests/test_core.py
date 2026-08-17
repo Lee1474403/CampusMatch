@@ -186,6 +186,18 @@ def test_registration_accepts_empty_department_but_requires_school() -> None:
     assert payload.school == "测试大学"
     assert payload.department is None
     assert ProfileUpdate(school="测试大学", department="   ").department is None
+    assert ProfileUpdate(height_cm=175, weight_kg=65.5).model_dump(exclude_unset=True) == {
+        "height_cm": 175,
+        "weight_kg": 65.5,
+    }
+
+    for invalid_metrics in ({"height_cm": 99}, {"height_cm": 251}, {"weight_kg": 29}, {"weight_kg": 301}):
+        try:
+            ProfileUpdate(**invalid_metrics)
+        except ValidationError:
+            pass
+        else:
+            raise AssertionError("身高体重超出允许范围时应校验失败")
 
     try:
         RegisterRequest(
@@ -213,6 +225,8 @@ def test_account_is_only_exposed_in_own_profile() -> None:
         [Interest(id=12, name="编程", emoji="💻", category="科技校园", sort_order=1)],
         None,
     )
+    user.height_cm = 178
+    user.weight_kg = 68.5
     public_profile = profile_from_user(user)
     own_profile = own_profile_from_user(user)
     private_profile = private_profile_from_user(user)
@@ -220,5 +234,9 @@ def test_account_is_only_exposed_in_own_profile() -> None:
     assert "account" not in public_profile.model_dump()
     assert "real_name" not in public_profile.model_dump()
     assert "real_name" not in private_profile.model_dump()
+    assert public_profile.height_cm == 178
+    assert public_profile.weight_kg == 68.5
+    assert "height_cm" not in private_profile.model_dump()
+    assert "weight_kg" not in private_profile.model_dump()
     assert own_profile.account == user.account
     assert "real_name" in own_profile.model_dump()

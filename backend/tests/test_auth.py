@@ -24,6 +24,8 @@ def registration_payload(**updates) -> RegisterRequest:
         "school": "测试大学",
         "department": None,
         "grade": "2024级",
+        "height_cm": 176,
+        "weight_kg": 64.5,
     }
     values.update(updates)
     return RegisterRequest(**values)
@@ -51,5 +53,8 @@ async def test_account_is_globally_unique_and_not_tied_to_a_forced_format() -> N
         assert duplicate.value.status_code == 409
         assert duplicate.value.detail == "该账号已注册"
         assert await db.scalar(select(func.count(User.id))) == 1
+        registered = await db.scalar(select(User))
+        assert registered.height_cm == 176
+        assert registered.weight_kg == 64.5
 
     await engine.dispose()

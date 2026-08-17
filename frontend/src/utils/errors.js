@@ -6,6 +6,7 @@ export function errorMessage(error, fallback = '操作没有完成，请稍后�
     const labels = {
       account: '账号', phone: '手机号', email: '邮箱', password: '密码', nickname: '昵称', real_name: '真实姓名',
       birth_date: '生日', school: '学校', department: '专业/院系', grade: '年级', location_province: '所在省份', location_city: '所在城市',
+      height_cm: '身高', weight_kg: '体重',
       hometown_province: '家乡省份', hometown_city: '家乡城市',
       bio: '个人简介', wechat: '微信号', content: '消息内容', interest_ids: '兴趣标签',
     }

@@ -109,6 +109,19 @@ DEMO_HOMETOWNS = {
     "20260010": ("河南", "洛阳"),
 }
 
+DEMO_BODY_METRICS = {
+    "20260001": (165, 51.0),
+    "20260002": (162, 49.5),
+    "20260003": (168, 52.0),
+    "20260004": (166, 53.0),
+    "20260005": (160, 48.0),
+    "20260006": (178, 68.0),
+    "20260007": (181, 70.0),
+    "20260008": (175, 66.0),
+    "20260009": (183, 76.0),
+    "20260010": (176, 64.0),
+}
+
 DEMO_SCHOOL = "CampusMatch示范大学"
 
 
@@ -141,6 +154,7 @@ async def seed_database(db: AsyncSession, *, include_demo_users: bool = True) ->
                 user.avatar_url = f"/static/demo-{'male' if user.gender == 'male' else 'female'}.svg"
             province, city = DEMO_LOCATIONS[user.account]
             hometown_province, hometown_city = DEMO_HOMETOWNS[user.account]
+            height_cm, weight_kg = DEMO_BODY_METRICS[user.account]
             if not user.location_province:
                 user.location_province = province
             if not user.location_city:
@@ -149,6 +163,10 @@ async def seed_database(db: AsyncSession, *, include_demo_users: bool = True) ->
                 user.hometown_province = hometown_province
             if not user.hometown_city:
                 user.hometown_city = hometown_city
+            if user.height_cm is None:
+                user.height_cm = height_cm
+            if user.weight_kg is None:
+                user.weight_kg = weight_kg
         await db.commit()
         return
 
@@ -157,6 +175,7 @@ async def seed_database(db: AsyncSession, *, include_demo_users: bool = True) ->
     for account, phone, email, nickname, gender, birth_date, department, grade, bio, tags in DEMO_USERS:
         province, city = DEMO_LOCATIONS[account]
         hometown_province, hometown_city = DEMO_HOMETOWNS[account]
+        height_cm, weight_kg = DEMO_BODY_METRICS[account]
         user = User(
             account=account,
             phone=phone,
@@ -172,6 +191,8 @@ async def seed_database(db: AsyncSession, *, include_demo_users: bool = True) ->
             location_city=city,
             hometown_province=hometown_province,
             hometown_city=hometown_city,
+            height_cm=height_cm,
+            weight_kg=weight_kg,
             avatar_url=f"/static/demo-{'male' if gender == 'male' else 'female'}.svg",
             bio=bio,
             interests=[interests[tag] for tag in tags],

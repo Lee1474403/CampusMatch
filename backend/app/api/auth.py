@@ -47,6 +47,8 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
         school=payload.school,
         department=payload.department,
         grade=payload.grade,
+        height_cm=payload.height_cm,
+        weight_kg=payload.weight_kg,
     )
     db.add(user)
     await db.commit()

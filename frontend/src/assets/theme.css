@@ -293,6 +293,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .profile-form-card .form-grid { gap: 0 20px; }
 .full-field { grid-column: 1 / -1; position: relative; }
 .profile-form-card .el-date-editor, .profile-form-card .el-select { width: 100%; }
+.metric-input { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
+.metric-input .el-input-number { width: 100%; }
+.metric-input > span { display: grid; place-items: center; height: 40px; color: #317f79; border: 1px solid #cae9e4; border-radius: 12px; background: #effaf8; font: 700 11px 'Fredoka'; }
 .location-field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .char-count { position: absolute; right: 11px; bottom: 5px; color: var(--muted); font-size: 10px; }
 .interest-section { margin-top: 16px; padding-top: 28px; border-top: 1px solid var(--line); }
@@ -536,6 +539,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .pair-name h2 { margin: 14px 0 2px; font-size: 29px; }
 .pair-name h2 span { color: var(--muted); font-size: 17px; font-weight: 500; }
 .pair-name p { margin: 0; color: var(--muted); font-size: 12px; }
+.public-body-metrics { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; margin: 11px auto 0; }
+.public-body-metrics span { padding: 6px 10px; color: #48636a; border: 1px solid #d8eae7; border-radius: 13px; background: rgba(239,250,248,.92); font-size: 11px; }
+.public-body-metrics b { color: #287f79; font: 700 13px 'Fredoka'; }
 .pair-bio { width: min(100%, 540px); min-width: 0; margin: 18px auto 16px; padding: 13px 16px 14px; box-sizing: border-box; color: #5f6a73; text-align: left; background: rgba(255,255,255,.72); border: 1px solid rgba(78,205,196,.18); border-radius: 15px; }
 .pair-bio > span { display: block; margin-bottom: 5px; color: #3b8f88; font-size: 10px; font-weight: 800; letter-spacing: .08em; }
 .pair-bio > p { max-width: 100%; margin: 0; overflow-wrap: anywhere; word-break: break-word; white-space: pre-wrap; color: #5f6a73; font-size: 13px; line-height: 1.75; }
