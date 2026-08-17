@@ -13,6 +13,22 @@ class HeartDecisionRequest(BaseModel):
     hearted: bool = True
 
 
+class WeeklyRecommendationOut(BaseModel):
+    id: int
+    rank: int = Field(ge=1, le=3)
+    week_start: date
+    user: UserProfile
+    preliminary_score: float = Field(default=0, ge=0, le=100)
+    deep_score: float | None = Field(default=None, ge=0, le=100)
+    final_score: float = Field(default=0, ge=0, le=100)
+    deep_comment: str | None = None
+    deep_match_used: bool = False
+    shared_interests: list[str] = Field(default_factory=list)
+    selected: bool = False
+    dismissed: bool = False
+    available: bool = True
+
+
 class PairDetail(BaseModel):
     id: int
     status: str
@@ -44,6 +60,11 @@ class MatchingStatus(BaseModel):
     matching_enabled: bool
     has_active_pair: bool
     pair: PairDetail | None = None
+    recommendations_generated: bool = False
+    recommendation_week_start: date | None = None
+    recommendation_valid_until: datetime | None = None
+    recommendations: list[WeeklyRecommendationOut] = Field(default_factory=list)
+    selected_recommendation: WeeklyRecommendationOut | None = None
     next_release_at: datetime
     server_time: datetime
     message: str
@@ -57,6 +78,13 @@ class MatchingToggleResponse(BaseModel):
 
 class HeartDecisionResponse(BaseModel):
     pair: PairDetail
+    message: str
+
+
+class WeeklyHeartDecisionResponse(BaseModel):
+    recommendation: WeeklyRecommendationOut
+    mutual_match: bool = False
+    pair: PairDetail | None = None
     message: str
 
 

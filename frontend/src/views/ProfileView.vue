@@ -351,7 +351,7 @@ onMounted(() => load().catch((error) => ElMessage.error(errorMessage(error))))
           </el-form>
           <div class="private-photo-section">
             <div class="section-title"><div><p>隐私资料</p><h2>真实照片（可选）</h2></div><span>{{ auth.user?.real_photos?.length || 0 }}/6</span></div>
-            <p class="section-helper">这些照片不会出现在每日配对结果中，只有双向心动并连续聊天满7天后才会向对方公开。</p>
+            <p class="section-helper">这些照片不会出现在每周推荐卡片中，只有双向心动并连续聊天满7天后才会向对方公开。</p>
             <div class="real-photo-grid">
               <div v-for="photo in auth.user?.real_photos" :key="photo" class="real-photo-item"><img :src="photo" alt="我的真实照片" /><button type="button" aria-label="删除照片" @click="deleteRealPhoto(photo)">×</button></div>
               <label v-if="(auth.user?.real_photos?.length || 0) < 6" class="real-photo-upload" :class="{ loading: uploadingReal }"><span>＋</span><b>{{ uploadingReal ? '上传中' : '添加照片' }}</b><small>JPG/PNG · 单张5MB</small><input type="file" multiple accept="image/jpeg,image/png" @change="uploadRealPhotos" /></label>
@@ -409,7 +409,7 @@ onMounted(() => load().catch((error) => ElMessage.error(errorMessage(error))))
             </div>
             <div v-else class="blocked-empty">当前没有屏蔽任何用户。</div>
           </div>
-          <div class="save-row"><span>基础资料完整后，才能开启每日匹配。</span><button class="primary-pill" :disabled="saving" @click="saveProfile">{{ saving ? '保存中…' : '保存资料' }}</button></div>
+          <div class="save-row"><span>基础资料完整后，才能开启每周匹配。</span><button class="primary-pill" :disabled="saving" @click="saveProfile">{{ saving ? '保存中…' : '保存资料' }}</button></div>
         </div>
       </div>
     </section>

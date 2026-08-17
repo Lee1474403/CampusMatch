@@ -87,7 +87,7 @@ onMounted(async () => {
           </div>
           <div class="notification-list">
             <button v-for="item in notifications" :key="item.id" :class="{ unread: !item.is_read }" @click="openNotification(item)">
-              <span>{{ ['daily_pair', 'match'].includes(item.type) ? '💌' : item.type === 'mutual_heart' ? '💞' : item.type === 'privacy_unlocked' ? '🔓' : item.type === 'pair_dissolved' ? '🌙' : '💬' }}</span>
+              <span>{{ ['daily_pair', 'weekly_recommendations', 'match'].includes(item.type) ? '💌' : item.type === 'mutual_heart' ? '💞' : item.type === 'privacy_unlocked' ? '🔓' : item.type === 'pair_dissolved' ? '🌙' : '💬' }}</span>
               <span><b>{{ item.content }}</b><small>{{ new Date(item.created_at).toLocaleString('zh-CN') }}</small></span>
             </button>
             <div v-if="!notifications.length" class="empty-mini">暂时没有新通知，去遇见页看看吧。</div>

@@ -1,6 +1,6 @@
 # CampusMatch · 校园志趣恋爱交友平台
 
-CampusMatch 是一个面向高校学生的 Web 端异性交友平台。当前匹配流程采用“每日一对一互配”模式：用户完善资料并主动进入匹配池，系统在北京时间每天中午 12:00 为符合条件的用户生成唯一、互为对方的一组配对。
+CampusMatch 是一个面向高校学生的 Web 端异性交友平台。当前匹配流程采用“每周三人单向推荐”模式：用户完善资料并主动进入匹配池，系统在北京时间每周六按用户 ID 均匀分批，为每位符合条件的用户生成最多 3 位异性候选人。
 
 ## 核心流程
 
@@ -9,9 +9,10 @@ CampusMatch 是一个面向高校学生的 Web 端异性交友平台。当前匹
   → 完善昵称、头像、学校、年级、性别、兴趣（专业/院系选填）
   →（可选）完成 26 道恋爱价值观问卷，自动获得深度匹配资格
   → 手动开启匹配
-  → 每日 12:00 两阶段筛选并一对一互配
-  → 双方分别选择是否心动
-  → 双向心动后开放聊天
+  → 周六分批生成最多 3 位单向推荐
+  → 左右滑动或点击箭头查看候选卡片
+  → 三人中选择唯一心动对象（不可更改）
+  → 对方也选择自己后形成双向心动并开放聊天
   → 从第一条消息起连续聊天满 7 天
   → 自动解锁联系方式和真实照片
 ```
@@ -19,30 +20,31 @@ CampusMatch 是一个面向高校学生的 Web 端异性交友平台。当前匹
 规则说明：
 
 - 资料不完整时不能开启匹配，前端会提示“请先完善个人资料”。
-- 关闭匹配后不会参与新的匹配，也不会被推荐给其他人。
-- 每人每天最多获得一个结果，A 匹配到 B 时，B 的结果也一定是 A。
-- 匹配后双方首先只能看到昵称、头像、学校、年级、专业/院系（如有填写）、性别和兴趣等基础信息。
-- 双方都点击“心动”后才开放聊天。
-- 待心动状态 7 天内未完成双向心动，配对自动解除。
+- 关闭匹配后不会参与新的推荐，当前周推荐和心动选择会同时失效。
+- 每位用户的推荐列表独立计算，不要求互配；A 的列表中有 B，不代表 B 的列表中一定有 A。
+- 候选卡片只显示昵称、头像、学校、年级、专业/院系（如有填写）、性别、兴趣和个人简介等基础信息。
+- 每周最多选择 1 位候选人，确认后不能撤回或改选；未被选择的卡片自动作废。
+- 只有双方在同一周各自选择对方时才创建正式配对，并立即开放聊天。
+- 没有形成双向心动的单向选择在下一周自动过期，不创建 `Match` 记录。
 - 聊天开启后，任一方连续 3 天未发送消息，配对自动解除。
 - 双向心动且从第一条消息起连续聊天满 7 天后，自动解锁手机号、邮箱、微信号和真实照片。
-- 配对解除后双方的匹配开关保持关闭，需要自行决定是否重新开启。
+- 正式配对解除后双方的匹配开关保持关闭，需要自行决定是否重新开启。
 - 问卷为自愿填写；未完成问卷的用户仍按初步分数正常参与匹配。
 - 完成全部 26 题后自动进入深度匹配池，无需额外开启开关。
 
 ## 深度匹配算法
 
-每日任务会循环选择得分最高的一对，保存后移除双方，继续处理剩余用户；每个用户当天最多只会出现在一组配对中。
+周六任务按配置的时间分批运行。默认批次时间为 10:00、11:00 和 13:00，用户通过 `user_id % 批次数` 均匀分片；当前批次只为本批用户生成推荐，但候选池使用全部符合条件的异性用户。
 
 1. 先对所有可用异性组合计算初步分数：细分兴趣与兴趣分类相似度占 60%，地域相似度占 30%，年龄相近度占 10%。地域分由当前所在地和家乡各占 50%；两项都按同省同市满分、同省不同市 60%、不同省 0 分计算。
-2. 完整填写问卷的双方按初步分数排序，只取每轮 Top-N（默认 10）进入 Qwen 深度评分。
+2. 对每位用户先按初步分数粗排；完整填写问卷的双方中，每位用户的 Top-N（默认 10）进入可控的 Qwen 深度评分候选集。
 3. Qwen 接收全部题目、选项文字和双方答案，返回 `deep_score`（0～100）及 200 字以内的友善中文评语。
 4. 深度候选的综合分为：`final_score = 0.4 × preliminary_score + 0.6 × deep_score`。
-5. 每轮选择综合分最高的一对；未完成问卷或 Qwen 降级时，综合分等于初步分数。
-6. 当剩余最高分低于阈值（默认 60）或只剩同一性别用户时停止。
-7. 已有配对历史的同一用户对会降低本轮选择优先级：解除后 30 天内扣 30 个排序分、31～90 天扣 15 分、91～180 天扣 5 分，180 天后不再扣分。惩罚只用于候选排序，不修改用户看到的适配分，也不会在只剩旧对象时永久禁止再次配对。
+5. 未完成问卷、调用额度耗尽或 Qwen 调用失败时，综合分等于初步分数，不会阻塞推荐生成。
+6. 每位用户按最终排序分从高到低保存最多 3 位异性；异性不足时保存实际人数，可能为 0。
+7. 已有正式配对历史或曾单向选择过的同一用户对会降低后续推荐优先级：30 天内扣 30 个排序分、31～90 天扣 15 分、91～180 天扣 5 分，180 天后不再扣分。惩罚只用于排序，不修改用户看到的适配分。
 
-Token 控制采用“每日全局调用上限”：默认最多调用 Qwen 10 次。评分按用户对缓存；达到上限后，尚未评估的组合使用初步分数继续匹配，不会让用户滞留在匹配池。Qwen 超时、返回无效 JSON、缺少依赖或没有配置密钥时也会自动降级为初步匹配。
+Token 控制采用“每周全局调用上限”：默认最多调用 Qwen 10 次。评分按标准化用户对缓存，并优先复用同周已经保存的深度结果；达到上限后，尚未评估的组合使用初步分数继续排序。Qwen 超时、返回无效 JSON、缺少依赖或没有配置密钥时也会自动降级。
 
 ## 已实现功能
 
@@ -54,12 +56,12 @@ Token 控制采用“每日全局调用上限”：默认最多调用 Qwen 10 �
 - 26 道五维恋爱价值观问卷、分组进度、进度保存和完成状态
 - LangChain `ChatPromptTemplate + ChatOpenAI + JsonOutputParser` 调用 DashScope OpenAI 兼容接口
 - 决策前的 Top-N 初筛、Qwen 深度精排、40%/60% 加权和友善评语展示
-- 每日定时一对一互配和持久化的任务执行记录
-- 待心动、聊天中、隐私已解锁、已解除的完整配对状态机
+- 每周六三批单向推荐、持久化推荐记录和批次执行日志
+- 推荐展示、唯一心动、聊天中、隐私已解锁、已解除的完整状态机
 - WebSocket 文字与 Emoji 聊天、在线状态、已读状态
 - 配对、双向心动、隐私解锁、新消息和配对解除通知
 - SMTP 配置存在时发送配对邮件
-- Vue 3 响应式页面：登录注册、每日配对、聊天、资料与通知中心
+- Vue 3 响应式页面：登录注册、每周滑卡推荐、聊天、资料与通知中心
 - SQLite 开发环境、PostgreSQL Docker 环境和 Alembic 数据迁移
 - 5 位男生 + 5 位女生演示数据
 
@@ -69,7 +71,7 @@ Token 控制采用“每日全局调用上限”：默认最多调用 Qwen 10 �
 - 数据库：SQLite/aiosqlite、PostgreSQL/asyncpg、Alembic
 - 认证与通信：python-jose、passlib bcrypt、WebSocket、aiosmtplib
 - 前端：Vue 3 Composition API、Vite、Pinia、Vue Router、Element Plus、Axios
-- 调度：Python `asyncio` 后台任务，北京时间每天 12:00 匹配，每 10 分钟维护配对状态
+- 调度：Python `asyncio` 后台任务，北京时间每周六分批推荐，每 10 分钟维护正式配对状态
 - 大模型：LangChain + DashScope OpenAI 兼容接口（`qwen-max`/可配置模型）
 - 部署：uv、Docker、Docker Compose、Nginx
 
@@ -95,11 +97,12 @@ backend/migrations/versions/20260730_0007_user_hometown.py
 backend/migrations/versions/20260730_0008_user_blocks.py
 backend/migrations/versions/20260730_0009_user_school.py
 backend/migrations/versions/20260730_0010_account_rename.py
+backend/migrations/versions/20260817_0011_weekly_recommendations.py
 ```
 
-迁移会保留原用户、配对和聊天记录；`0005` 新增问卷与深度匹配字段，`0006` 新增用户当前所在地，`0007` 新增用户家乡省市字段，`0008` 新增持久化用户屏蔽关系，`0009` 新增必填学校并将专业/院系调整为选填，`0010` 将原“学号”字段完整更名为全平台唯一的“账号”。本工作区在深度匹配迁移前的备份为 `campusmatch.db.pre-deep-matching.bak`。
+迁移会保留原用户、配对和聊天记录；`0011` 新增每周单向推荐表和批次运行记录表。升级前已经存在的 `pending_heartbeat` 配对仍按旧规则完成或失效，新生成的推荐只有在双方选择彼此时才创建正式聊天配对。
 
-升级到 `0009` 后，非演示账号需要在个人资料中补充学校；专业/院系可以留空。学校、所在地和家乡等必填资料完整后才能重新开启每日匹配。
+学校、所在地和家乡等必填资料完整后才能开启每周匹配；专业/院系可以留空。
 
 ## 本地启动
 
@@ -128,8 +131,7 @@ DASHSCOPE_API_KEY=你的_DashScope_API_Key
 DASHSCOPE_MODEL=qwen-max
 DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 DEEP_MATCH_CANDIDATE_POOL_SIZE=10
-DEEP_MATCH_MAX_DAILY_CALLS=10
-DEEP_MATCH_MIN_FINAL_SCORE=60
+DEEP_MATCH_MAX_WEEKLY_CALLS=10
 DEEP_MATCH_PRELIMINARY_WEIGHT=0.4
 DEEP_MATCH_MODEL_WEIGHT=0.6
 DEEP_MATCH_TIMEOUT_SECONDS=45
@@ -139,9 +141,13 @@ REPEAT_MATCH_MEDIUM_WINDOW_DAYS=90
 REPEAT_MATCH_MEDIUM_PENALTY=15
 REPEAT_MATCH_LONG_WINDOW_DAYS=180
 REPEAT_MATCH_LONG_PENALTY=5
+WEEKLY_MATCHING_WEEKDAY=5
+WEEKLY_MATCHING_BATCH_HOURS=10,11,13
+WEEKLY_MATCHING_BATCH_MINUTE=0
+WEEKLY_RECOMMENDATION_COUNT=3
 ```
 
-修改 Python 依赖后请执行 `uv sync`。若 `DASHSCOPE_API_KEY` 留空，后端仍可正常启动，问卷也可填写，但每日匹配会安全降级为初步分数。
+`WEEKLY_MATCHING_WEEKDAY` 使用 Python 星期编号：周一为 0，周六为 5。若 `DASHSCOPE_API_KEY` 留空，后端仍可正常启动，问卷也可填写，每周推荐会安全降级为初步分数。
 
 ### 前端
 
@@ -178,15 +184,17 @@ npm run dev
 POST /api/matching/run-now
 ```
 
-该接口只用于开发和管理测试；正式匹配仍由每天中午 12:00 的任务触发。
+不带参数会强制重算全部批次；也可使用 `?batch_index=0` 只测试指定批次。该接口只用于开发和管理测试；正式推荐由周六批次任务触发。
 
 ## 主要 API
 
 ```text
-GET   /api/matching/status                  当前匹配资格、开关和有效配对
+GET   /api/matching/status                  当前资格、开关、每周推荐和有效配对
 PATCH /api/matching/settings                开启或关闭匹配
-PATCH /api/matching/pairs/{id}/heart        保存心动选择
-POST  /api/matching/run-now                 管理员手动触发匹配
+GET   /api/recommendations                  本周仍可查看的推荐列表
+POST  /api/matching/recommendations/{id}/heart  选择本周唯一心动对象
+PATCH /api/matching/pairs/{id}/heart        兼容升级前旧配对的心动选择
+POST  /api/matching/run-now                 管理员手动触发全部或指定批次
 GET   /api/questionnaire                    获取 26 道题、已有答案和进度
 GET   /api/questionnaire/status             获取问卷完成状态
 PUT   /api/questionnaire/answers            新增或更新用户问卷答案
@@ -200,7 +208,7 @@ POST  /api/profile/real-photos              上传真实照片
 DELETE /api/profile/real-photos?url=...      删除真实照片
 ```
 
-旧版 `/api/recommendations` 和 `/api/swipes` 会返回 `410 Gone`，防止绕过新的每日互配流程。
+旧版 `/api/swipes` 返回 `410 Gone`；新流程必须通过每周推荐记录选择唯一心动对象。
 
 ## 聊天安全与屏蔽词维护
 
@@ -257,9 +265,9 @@ npm run build
 CampusMatch/
 ├── backend/
 │   ├── app/
-│   │   ├── api/          # 认证、资料、每日配对、聊天、通知、WebSocket
+│   │   ├── api/          # 认证、资料、每周推荐、配对、聊天、通知、WebSocket
 │   │   ├── core/         # 数据库、JWT、依赖注入
-│   │   ├── models/       # User、Match、MatchingRun 等模型
+│   │   ├── models/       # User、WeeklyRecommendation、Match 等模型
 │   │   ├── schemas/      # Pydantic 请求与响应模型
 │   │   ├── services/     # 配对算法、深度评分、问卷、聊天安全、状态维护、调度、邮件、种子
 │   │   └── data/blocked_words/ # 可直接维护的聊天屏蔽词目录
@@ -282,8 +290,9 @@ CampusMatch/
 - 后台调度运行在当前 FastAPI 进程内，部署时应保持单个后端进程，避免多实例重复调度。多实例生产环境建议迁移到独立调度服务或带分布式锁的任务系统。
 - WebSocket 在线状态也保存在当前后端进程内，多实例部署需使用 Redis Pub/Sub。
 - 调度时区固定为中国标准时间 UTC+8，不依赖操作系统时区数据库。
-- `matching_runs.run_date` 会记录每日任务，服务错过 12:00 后重新启动时会补执行当天任务。
+- `weekly_recommendation_runs` 记录每周每个批次的状态、人数、推荐数、深度调用数和错误信息。
+- 服务在周六重启时会补执行当天已经到点但尚未完成的批次；周日及以后不会回补上一周任务。
 - 旧版 `Like` 表暂时保留用于历史数据兼容，新流程不再写入该表。
 - 未配置 SMTP 时邮件会跳过，但站内通知不受影响。
-- 未配置 DashScope 密钥或 Qwen 调用失败时，系统使用初步分数完成当日匹配。
-- 默认每天最多发起 10 次 Qwen 调用；可通过 `.env` 调整候选池、调用上限、权重、阈值与超时。
+- 未配置 DashScope 密钥或 Qwen 调用失败时，系统使用初步分数完成本周推荐。
+- 默认每周最多发起 10 次 Qwen 调用；可通过 `.env` 调整候选池、每周调用上限、权重与超时。

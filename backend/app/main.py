@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.app.api.router import api_router
 from backend.app.config import settings
 from backend.app.core.database import AsyncSessionLocal, create_database
-from backend.app.services.scheduler import run_missed_daily_job_if_needed, start_scheduler, stop_scheduler
+from backend.app.services.scheduler import run_missed_weekly_batches_if_needed, start_scheduler, stop_scheduler
 from backend.app.services.seed import seed_database
 from backend.app.services.questionnaire import seed_questionnaire
 
@@ -20,8 +20,8 @@ async def lifespan(_: FastAPI):
         await seed_database(db, include_demo_users=settings.seed_demo_data)
     async with AsyncSessionLocal() as db:
         await seed_questionnaire(db)
+    await run_missed_weekly_batches_if_needed()
     start_scheduler()
-    await run_missed_daily_job_if_needed()
     try:
         yield
     finally:

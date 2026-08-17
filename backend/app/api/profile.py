@@ -9,10 +9,11 @@ from backend.app.config import settings
 from backend.app.core.database import get_db
 from backend.app.core.dependencies import get_current_user
 from backend.app.core.security import hash_password, verify_password
-from backend.app.models.entities import Interest, Match, User
+from backend.app.models.entities import Interest, Match, User, WeeklyRecommendation
 from backend.app.schemas.auth import ChangePasswordRequest
 from backend.app.schemas.user import InterestOut, OwnProfile, ProfileUpdate, UserProfile
 from backend.app.services.pairing import ACTIVE_PAIR_STATUSES
+from backend.app.services.recommendations import invalidate_user_recommendations, weekly_period_start
 from backend.app.services.users import is_profile_complete, own_profile_from_user, profile_from_user
 
 
@@ -82,6 +83,7 @@ async def update_my_profile(
     if not is_profile_complete(user):
         user.is_matching_enabled = False
         user.matching_enabled_at = None
+        await invalidate_user_recommendations(db, user.id)
 
     await db.commit()
     await db.refresh(user, attribute_names=["interests"])
@@ -197,5 +199,15 @@ async def get_user_profile(
         )
     )
     if not matched:
-        raise HTTPException(status_code=403, detail="仅可通过推荐查看候选资料，配对后可再次访问完整主页")
+        recommended = await db.scalar(
+            select(WeeklyRecommendation.id).where(
+                WeeklyRecommendation.owner_user_id == current_user.id,
+                WeeklyRecommendation.candidate_user_id == target.id,
+                WeeklyRecommendation.week_start == weekly_period_start(),
+                WeeklyRecommendation.invalidated_at.is_(None),
+                WeeklyRecommendation.dismissed_at.is_(None),
+            )
+        )
+        if not recommended:
+            raise HTTPException(status_code=403, detail="仅可查看本周推荐对象或当前配对对象的完整资料")
     return profile_from_user(target)

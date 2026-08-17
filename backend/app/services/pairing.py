@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -189,14 +189,6 @@ async def repeat_penalties_for_candidates(
         for key, reference in latest_by_pair.items()
         if (penalty := repeat_match_penalty(reference, current)) > 0
     }
-
-
-def next_release_at(now: datetime | None = None) -> datetime:
-    current = (now or utc_now()).astimezone(CHINA_TZ)
-    release = datetime.combine(current.date(), time(12, 0), tzinfo=CHINA_TZ)
-    if current >= release:
-        release += timedelta(days=1)
-    return release.astimezone(UTC)
 
 
 async def get_active_pair(db: AsyncSession, user_id: int) -> Match | None:

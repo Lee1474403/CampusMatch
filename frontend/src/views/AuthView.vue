@@ -57,7 +57,7 @@ async function submitRegister() {
       <div class="story-copy">
         <p class="eyebrow">只属于校园的心动频道</p>
         <h1>从一个共同爱好，<br />聊到<span>刚好同频。</span></h1>
-        <p>不追求无尽滑动。每天中午十二点，只为你安排一位互为唯一的校园配对，慢一点，也认真一点。</p>
+        <p>不追求无尽滑动。每周六为你准备最多三位校园推荐，只选择一个真正想继续认识的人。</p>
         <div class="story-points">
           <span><el-icon><Check /></el-icon> 校园身份</span>
           <span><el-icon><Check /></el-icon> 兴趣匹配</span>

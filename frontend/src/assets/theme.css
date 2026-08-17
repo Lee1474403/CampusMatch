@@ -517,7 +517,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .release-note { position: relative; z-index: 4; margin: 11px 0 0; color: #7a858e; font-size: 11px; text-align: center; }
 .waiting-envelope { justify-content: space-between; padding-top: 48px; background: linear-gradient(160deg, #edf9f7, #fff7d9 58%, #fff0ea); }
 .waiting-envelope::before, .waiting-envelope::after { height: 45%; }
-.envelope-seal { position: absolute; z-index: 4; left: 50%; top: 44%; display: grid; place-items: center; width: 66px; height: 66px; color: white; background: var(--coral); border: 7px double rgba(255,255,255,.62); border-radius: 50%; box-shadow: 0 10px 25px rgba(255,107,107,.28); transform: translate(-50%, -50%) rotate(-5deg); font-size: 24px; }
+.envelope-seal { position: absolute; z-index: 4; top: 30px; right: clamp(24px, 5vw, 44px); display: grid; place-items: center; width: 66px; height: 66px; color: white; background: var(--coral); border: 7px double rgba(255,255,255,.62); border-radius: 50%; box-shadow: 0 10px 25px rgba(255,107,107,.28); transform: rotate(6deg); font-size: 24px; }
 .sealed-copy { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; padding: 20px 30px 0; text-align: center; }
 .sealed-copy h2 { margin: 7px 0 13px; font-size: 34px; }
 .sealed-copy > p:not(.eyebrow) { max-width: 430px; color: var(--muted); line-height: 1.7; }
@@ -571,6 +571,53 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .privacy-shield p { display: flex; flex-direction: column; margin: 0; }
 .privacy-shield b { font-size: 12px; }
 .privacy-shield small { margin-top: 3px; font-size: 9px; line-height: 1.45; }
+
+/* Weekly directional recommendations */
+.weekly-stamp { color: white; background: var(--teal); box-shadow: 8px 8px 0 rgba(255,107,107,.22); }
+.weekly-envelope .envelope-letter b { margin-top: 28px; }
+.weekly-empty-card .match-switch-row { width: min(100%, 410px); margin-top: 18px; text-align: left; }
+.match-switch-row.compact { width: 100%; padding: 13px 15px; box-shadow: none; }
+.weekly-recommendation-panel { min-width: 0; padding: 22px 24px 24px; border: 1px solid #eee6df; border-radius: 30px; background: rgba(255,255,255,.92); box-shadow: var(--shadow); }
+.weekly-deck-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin: 0 4px 17px; }
+.weekly-deck-head h2 { margin: 2px 0 0; font-size: clamp(24px, 3vw, 31px); }
+.weekly-deck-head > span { flex: 0 0 auto; padding: 7px 11px; color: #367e79; border: 1px solid #cfe9e5; border-radius: 13px; background: #effaf8; font: 700 12px 'Fredoka'; }
+.weekly-card-stack { position: relative; padding: 0 15px 17px 0; isolation: isolate; }
+.weekly-card-stack::before, .weekly-card-stack::after { content: ''; position: absolute; z-index: -1; pointer-events: none; border: 1px solid #eadfd8; border-radius: 30px; background: #fffaf6; box-shadow: 0 12px 26px rgba(69,75,82,.07); }
+.weekly-card-stack::before { inset: 11px 5px 7px 9px; transform: rotate(1.2deg); }
+.weekly-card-stack::after { inset: 20px 0 0 17px; background: #effaf8; transform: rotate(2.2deg); }
+.weekly-card-stack.depth-1::before, .weekly-card-stack.depth-1::after { display: none; }
+.weekly-card-stack.depth-2::after { display: none; }
+.weekly-candidate-card { position: relative; z-index: 2; min-height: 0; cursor: grab; touch-action: pan-y; user-select: none; transition: transform .24s cubic-bezier(.2,.75,.25,1), box-shadow .24s; }
+.weekly-candidate-card.dragging { cursor: grabbing; transition: none; box-shadow: 0 24px 55px rgba(51,63,72,.2); }
+.weekly-deep-comment { margin-bottom: 24px; }
+.weekly-deck-controls { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 14px; margin: 5px 3px 17px; }
+.deck-arrow { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; color: #3a807a; border: 1px solid #d2e9e5; border-radius: 50%; background: #effaf8; cursor: pointer; transition: .2s; }
+.deck-arrow:hover:not(:disabled) { color: white; border-color: var(--teal); background: var(--teal); transform: translateY(-2px); }
+.deck-arrow:disabled { opacity: .35; cursor: not-allowed; }
+.deck-dots { display: flex; justify-content: center; gap: 8px; }
+.deck-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%; background: #d9d3ce; cursor: pointer; transition: .2s; }
+.deck-dots button.active { width: 26px; border-radius: 8px; background: var(--coral); }
+.weekly-heart-action { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 18px; padding: 17px 18px; border: 1px solid #f1d9d3; border-radius: 20px; background: linear-gradient(120deg, #fff1ed, #fff9df); }
+.weekly-heart-action > div { min-width: 0; display: flex; align-items: center; gap: 11px; }
+.weekly-heart-action > div > span { flex: 0 0 auto; font-size: 30px; }
+.weekly-heart-action p { min-width: 0; display: flex; flex-direction: column; margin: 0; }
+.weekly-heart-action b { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.weekly-heart-action small { margin-top: 3px; color: #8a7771; font-size: 9px; }
+.weekly-heart-action .primary-pill { min-width: 195px; }
+.weekly-toggle-bar { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 13px 4px 0; color: var(--muted); font-size: 9px; }
+.recommendation-card-enter-active, .recommendation-card-leave-active { transition: opacity .18s ease; }
+.recommendation-card-enter-from, .recommendation-card-leave-to { opacity: 0; }
+.selected-heart-card { min-height: 570px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; text-align: center; border: 1px solid #eee6df; border-radius: 30px; background: radial-gradient(circle at 50% 22%, rgba(255,230,109,.32), transparent 29%), rgba(255,255,255,.95); box-shadow: var(--shadow); }
+.selected-heart-orbit { position: relative; padding: 9px; border: 2px solid white; border-radius: 50%; background: #fff5df; box-shadow: var(--soft-shadow); }
+.selected-heart-orbit > span { position: absolute; right: -8px; bottom: 3px; display: grid; place-items: center; width: 47px; height: 47px; color: white; border: 4px solid white; border-radius: 50% 50% 50% 13px; background: var(--coral); font-size: 19px; transform: rotate(8deg); }
+.selected-heart-card > .eyebrow { margin-top: 25px; }
+.selected-heart-card h2 { margin: 5px 0 9px; font-size: 31px; }
+.selected-heart-card > p:not(.eyebrow) { max-width: 430px; margin: 0; color: var(--muted); line-height: 1.7; }
+.selected-summary { width: min(100%, 390px); display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 24px 0 16px; }
+.selected-summary span { display: flex; flex-direction: column; padding: 13px; border-radius: 15px; background: #f7f4f1; }
+.selected-summary small { color: var(--muted); font-size: 9px; }
+.selected-summary b { margin-top: 3px; color: var(--coral-dark); font-size: 15px; }
+.selected-heart-card .match-switch-row { width: min(100%, 430px); text-align: left; }
 
 /* Profile completion and private photo management */
 .completion-badge { margin: 13px 0 3px; padding: 8px 10px; color: #af5359; background: #fff0ed; border-radius: 12px; font-size: 10px; font-weight: 800; line-height: 1.45; }
@@ -705,6 +752,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .questionnaire-map { position: static; display: flex; gap: 6px; overflow-x: auto; margin-bottom: 16px; }
   .questionnaire-map .ai-use-note, .questionnaire-back { display: none; }
   .questionnaire-map > button { flex: 0 0 auto; width: auto; min-width: 154px; }
+  .weekly-recommendation-panel { padding: 18px; }
 }
 
 @media (max-width: 520px) {
@@ -712,6 +760,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .gate-card { padding: 35px 23px; }
   .daily-envelope { min-height: 520px; padding: 20px; }
   .envelope-letter { left: 7%; right: 7%; padding: 35px 25px; }
+  .envelope-seal { top: 18px; right: 18px; width: 54px; height: 54px; border-width: 6px; font-size: 20px; }
   .sealed-copy { padding-left: 10px; padding-right: 10px; }
   .pair-person { padding-left: 19px; padding-right: 19px; }
   .heart-decision, .chat-unlock-panel { padding-left: 19px; padding-right: 19px; }
@@ -729,4 +778,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .questionnaire-actions { display: grid; grid-template-columns: 1fr 1fr; padding: 16px; }
   .questionnaire-actions .text-button { grid-column: 1 / -1; grid-row: 1; margin: 0; }
   .questionnaire-actions .primary-pill, .questionnaire-actions .secondary-pill { padding: 0 12px; }
+  .weekly-recommendation-panel { padding: 14px 12px 17px; border-radius: 23px; }
+  .weekly-deck-head { align-items: flex-start; }
+  .weekly-deck-head h2 { font-size: 23px; }
+  .weekly-card-stack { padding-right: 8px; }
+  .weekly-heart-action { grid-template-columns: 1fr; }
+  .weekly-heart-action .primary-pill { width: 100%; }
+  .weekly-toggle-bar { align-items: flex-start; }
+  .selected-heart-card { min-height: 520px; padding: 35px 22px; }
 }

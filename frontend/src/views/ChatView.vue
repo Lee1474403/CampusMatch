@@ -218,7 +218,7 @@ onBeforeUnmount(() => {
               <AvatarBubble :src="item.user.avatar_url" :name="item.user.nickname" :size="52" :online="item.online" />
               <span class="conversation-copy"><span><b>{{ item.user.nickname }}</b><small>{{ timeLabel(item.last_message_at || item.matched_at) }}</small></span><span><em>{{ item.last_message || '已经配对成功，打个招呼吧 👋' }}</em><i v-if="item.unread_count">{{ item.unread_count }}</i></span></span>
             </button>
-            <div v-if="!filteredMatches.length" class="empty-conversations"><span>💌</span><b>{{ matches.length ? '没有找到这个昵称' : '还没有开放聊天的配对' }}</b><p>{{ matches.length ? '换个关键词试试。' : '先去遇见页开启每日匹配，并等待双方心动。' }}</p><router-link v-if="!matches.length" to="/discover">查看每日配对</router-link></div>
+            <div v-if="!filteredMatches.length" class="empty-conversations"><span>💌</span><b>{{ matches.length ? '没有找到这个昵称' : '还没有开放聊天的配对' }}</b><p>{{ matches.length ? '换个关键词试试。' : '先去遇见页开启每周匹配，并等待双方都选择彼此。' }}</p><router-link v-if="!matches.length" to="/discover">查看每周推荐</router-link></div>
           </div>
         </aside>
 

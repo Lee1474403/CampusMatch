@@ -8,6 +8,8 @@ from backend.app.models.entities import (
     User,
     UserBlock,
     UserInterest,
+    WeeklyRecommendation,
+    WeeklyRecommendationRun,
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "MatchingRun",
     "Message",
     "Notification",
+    "WeeklyRecommendation",
+    "WeeklyRecommendationRun",
 ]

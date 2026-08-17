@@ -151,6 +151,65 @@ class Match(Base):
     messages: Mapped[list["Message"]] = relationship(back_populates="match", cascade="all, delete-orphan")
 
 
+class WeeklyRecommendation(Base):
+    __tablename__ = "weekly_recommendations"
+    __table_args__ = (
+        UniqueConstraint("owner_user_id", "week_start", "rank", name="uq_weekly_recommendation_rank"),
+        UniqueConstraint(
+            "owner_user_id",
+            "candidate_user_id",
+            "week_start",
+            name="uq_weekly_recommendation_candidate",
+        ),
+        CheckConstraint("owner_user_id != candidate_user_id", name="ck_weekly_recommendations_not_self"),
+        CheckConstraint("rank BETWEEN 1 AND 3", name="ck_weekly_recommendations_rank"),
+        Index("ix_weekly_recommendations_owner_week", "owner_user_id", "week_start"),
+        Index("ix_weekly_recommendations_candidate_week", "candidate_user_id", "week_start"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    candidate_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    week_start: Mapped[date] = mapped_column(Date, index=True)
+    rank: Mapped[int] = mapped_column(Integer)
+    preliminary_score: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    deep_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    final_score: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    selection_score: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    repeat_penalty: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    deep_comment: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    deep_match_used: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    shared_interests: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
+    selected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    dismissed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    invalidated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    owner: Mapped[User] = relationship(foreign_keys=[owner_user_id], lazy="selectin")
+    candidate: Mapped[User] = relationship(foreign_keys=[candidate_user_id], lazy="selectin")
+
+
+class WeeklyRecommendationRun(Base):
+    __tablename__ = "weekly_recommendation_runs"
+    __table_args__ = (
+        UniqueConstraint("week_start", "batch_index", name="uq_weekly_recommendation_run_batch"),
+        CheckConstraint("status IN ('running', 'completed', 'failed')", name="ck_weekly_recommendation_runs_status"),
+        Index("ix_weekly_recommendation_runs_week_status", "week_start", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    week_start: Mapped[date] = mapped_column(Date, index=True)
+    batch_index: Mapped[int] = mapped_column(Integer)
+    batch_count: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16), default="running", server_default="running")
+    eligible_user_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    recommendation_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    deep_calls_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
 class UserBlock(Base):
     __tablename__ = "user_blocks"
     __table_args__ = (

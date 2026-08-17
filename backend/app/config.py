@@ -24,9 +24,13 @@ class Settings(BaseSettings):
     max_real_photos: int = 6
     daily_like_limit: int = 20
     matching_timezone: str = "Asia/Shanghai"
-    matching_release_hour: int = 12
+    weekly_matching_weekday: int = 5
+    weekly_matching_batch_hours: str = "10,11,13"
+    weekly_matching_batch_minute: int = 0
+    weekly_recommendation_count: int = 3
     deep_match_candidate_pool_size: int = 10
     deep_match_max_daily_calls: int = 10
+    deep_match_max_weekly_calls: int = 10
     deep_match_min_final_score: float = 60.0
     deep_match_preliminary_weight: float = 0.4
     deep_match_model_weight: float = 0.6
@@ -55,12 +59,50 @@ class Settings(BaseSettings):
     def strip_frontend_url(cls, value: str) -> str:
         return value.rstrip("/")
 
-    @field_validator("deep_match_candidate_pool_size", "deep_match_max_daily_calls")
+    @field_validator(
+        "deep_match_candidate_pool_size",
+        "deep_match_max_daily_calls",
+        "deep_match_max_weekly_calls",
+    )
     @classmethod
     def positive_deep_match_limits(cls, value: int) -> int:
         if value < 1:
-            raise ValueError("深度匹配候选数量和每日调用上限必须大于 0")
+            raise ValueError("深度匹配候选数量和调用上限必须大于 0")
         return value
+
+    @field_validator("weekly_matching_weekday")
+    @classmethod
+    def valid_matching_weekday(cls, value: int) -> int:
+        if not 0 <= value <= 6:
+            raise ValueError("每周匹配星期必须在 0（周一）到 6（周日）之间")
+        return value
+
+    @field_validator("weekly_matching_batch_minute")
+    @classmethod
+    def valid_matching_batch_minute(cls, value: int) -> int:
+        if not 0 <= value <= 59:
+            raise ValueError("每周匹配批次分钟必须在 0 到 59 之间")
+        return value
+
+    @field_validator("weekly_recommendation_count")
+    @classmethod
+    def valid_weekly_recommendation_count(cls, value: int) -> int:
+        if not 1 <= value <= 3:
+            raise ValueError("每周推荐人数必须在 1 到 3 之间")
+        return value
+
+    @field_validator("weekly_matching_batch_hours")
+    @classmethod
+    def valid_matching_batch_hours(cls, value: str) -> str:
+        try:
+            hours = [int(item.strip()) for item in value.split(",") if item.strip()]
+        except ValueError as exc:
+            raise ValueError("每周匹配批次小时必须是逗号分隔的整数") from exc
+        if not hours or any(not 0 <= hour <= 23 for hour in hours):
+            raise ValueError("每周匹配批次小时必须在 0 到 23 之间")
+        if len(hours) != len(set(hours)):
+            raise ValueError("每周匹配批次小时不能重复")
+        return ",".join(str(hour) for hour in sorted(hours))
 
     @model_validator(mode="after")
     def validate_deep_match_scoring(self):
@@ -89,6 +131,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.frontend_url.split(",") if origin.strip()]
+
+    @property
+    def weekly_batch_hours(self) -> tuple[int, ...]:
+        return tuple(int(item) for item in self.weekly_matching_batch_hours.split(","))
 
 
 @lru_cache
