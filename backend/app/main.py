@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.app.api.router import api_router
@@ -44,6 +45,20 @@ app.add_middleware(
 app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 app.mount("/static", StaticFiles(directory=settings.upload_dir.parent / "app" / "static"), name="static")
 app.include_router(api_router)
+
+
+@app.middleware("http")
+async def enforce_transport_security(request: Request, call_next):
+    forwarded_proto = request.headers.get("x-forwarded-proto", request.url.scheme).split(",", 1)[0].strip()
+    if settings.force_https and forwarded_proto != "https":
+        secure_url = request.url.replace(scheme="https")
+        return RedirectResponse(str(secure_url), status_code=307)
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response
 
 
 @app.get("/health", tags=["系统"])

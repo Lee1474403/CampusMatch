@@ -13,14 +13,17 @@ class Settings(BaseSettings):
     environment: str = "development"
     secret_key: str = "development-only-change-me"
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 120
     refresh_token_expire_days: int = 7
+    access_cookie_name: str = "campusmatch_access"
+    refresh_cookie_name: str = "campusmatch_refresh"
+    force_https: bool = False
     database_url: str = "sqlite+aiosqlite:///./campusmatch.db"
     frontend_url: str = "http://localhost:5173"
     seed_demo_data: bool = True
     upload_dir: Path = BASE_DIR / "backend" / "uploads"
     max_avatar_bytes: int = 2 * 1024 * 1024
-    max_real_photo_bytes: int = 5 * 1024 * 1024
+    max_real_photo_bytes: int = 2 * 1024 * 1024
     max_real_photos: int = 6
     daily_like_limit: int = 20
     matching_timezone: str = "Asia/Shanghai"
@@ -47,10 +50,14 @@ class Settings(BaseSettings):
 
     smtp_host: str | None = None
     smtp_port: int = 587
+    smtp_user: str | None = None
     smtp_username: str | None = None
     smtp_password: str | None = None
     smtp_from: str = "no-reply@campusmatch.local"
     smtp_start_tls: bool = True
+    smtp_use_tls: bool | None = None
+    email_verification_expire_hours: int = 24
+    email_token_secret: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -106,6 +113,21 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_deep_match_scoring(self):
+        if self.access_token_expire_minutes < 1 or self.refresh_token_expire_days < 1:
+            raise ValueError("令牌有效期必须大于 0")
+        if self.email_verification_expire_hours < 1:
+            raise ValueError("邮箱验证链接有效期必须大于 0")
+        if self.environment.lower() == "production":
+            if len(self.secret_key) < 32 or self.secret_key in {
+                "development-only-change-me",
+                "replace-this-secret-before-production",
+                "change-this-to-a-long-random-secret",
+            }:
+                raise ValueError("生产环境必须设置至少 32 位的强随机 SECRET_KEY")
+            if not self.force_https:
+                raise ValueError("生产环境必须设置 FORCE_HTTPS=true")
+            if any(not origin.startswith("https://") for origin in self.cors_origins):
+                raise ValueError("生产环境 FRONTEND_URL 必须使用 https://")
         if not 0 <= self.deep_match_min_final_score <= 100:
             raise ValueError("深度匹配最低分必须在 0 到 100 之间")
         if abs(self.deep_match_preliminary_weight + self.deep_match_model_weight - 1.0) > 1e-6:
@@ -133,8 +155,20 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.frontend_url.split(",") if origin.strip()]
 
     @property
+    def public_frontend_url(self) -> str:
+        return self.cors_origins[0]
+
+    @property
     def weekly_batch_hours(self) -> tuple[int, ...]:
         return tuple(int(item) for item in self.weekly_matching_batch_hours.split(","))
+
+    @property
+    def smtp_login(self) -> str | None:
+        return self.smtp_user or self.smtp_username
+
+    @property
+    def verification_secret(self) -> str:
+        return self.email_token_secret or self.secret_key
 
 
 @lru_cache

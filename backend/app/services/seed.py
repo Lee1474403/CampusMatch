@@ -148,6 +148,9 @@ async def seed_database(db: AsyncSession, *, include_demo_users: bool = True) ->
         demo_accounts = [item[0] for item in DEMO_USERS]
         users = (await db.scalars(select(User).where(User.account.in_(demo_accounts)))).all()
         for user in users:
+            user.is_email_verified = True
+            user.email_verification_token = None
+            user.verification_token_expires_at = None
             if not user.school:
                 user.school = DEMO_SCHOOL
             if not user.avatar_url:
@@ -197,6 +200,7 @@ async def seed_database(db: AsyncSession, *, include_demo_users: bool = True) ->
             bio=bio,
             interests=[interests[tag] for tag in tags],
             is_superuser=account == "20260006",
+            is_email_verified=True,
         )
         db.add(user)
     await db.commit()

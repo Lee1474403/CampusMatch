@@ -8,7 +8,6 @@ import { api, errorMessage } from '../api/client'
 import AppShell from '../components/AppShell.vue'
 import AvatarBubble from '../components/AvatarBubble.vue'
 import { useAuthStore } from '../stores/auth'
-import { getAccessToken } from '../utils/authStorage'
 import { formatChinaDate, formatChinaShortDate, formatChinaTime, isTodayInChina, parseApiDate } from '../utils/dateTime'
 
 const route = useRoute()
@@ -82,12 +81,11 @@ function connectSocket(matchId) {
   clearTimeout(reconnectTimer)
   intentionalClose = false
   if (!matchId) return
-  const token = getAccessToken()
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const configured = import.meta.env.VITE_WS_URL
   const url = configured
-    ? `${configured.replace(/\/$/, '')}/api/ws/chat/${matchId}?token=${encodeURIComponent(token)}`
-    : `${protocol}//${window.location.host}/api/ws/chat/${matchId}?token=${encodeURIComponent(token)}`
+    ? `${configured.replace(/\/$/, '')}/api/ws/chat/${matchId}`
+    : `${protocol}//${window.location.host}/api/ws/chat/${matchId}`
   socket = new WebSocket(url)
   socket.onmessage = async (event) => {
     const payload = JSON.parse(event.data)

@@ -48,6 +48,7 @@ class OwnProfile(UserProfile):
     birth_date: date
     created_at: datetime | None = None
     is_superuser: bool = False
+    is_email_verified: bool = False
     is_matching_enabled: bool = False
     profile_complete: bool = False
     missing_profile_fields: list[str] = Field(default_factory=list)

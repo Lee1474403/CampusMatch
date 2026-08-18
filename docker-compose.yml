@@ -18,10 +18,13 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      ENVIRONMENT: production
+      ENVIRONMENT: development
       SECRET_KEY: ${SECRET_KEY:-replace-this-secret-before-production}
       DATABASE_URL: postgresql+asyncpg://campusmatch:campusmatch@db:5432/campusmatch
-      FRONTEND_URL: http://localhost:8080
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      FORCE_HTTPS: "false"
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-120}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
       WEEKLY_MATCHING_WEEKDAY: ${WEEKLY_MATCHING_WEEKDAY:-5}
       WEEKLY_MATCHING_BATCH_HOURS: ${WEEKLY_MATCHING_BATCH_HOURS:-10,11,13}
@@ -37,9 +40,13 @@ services:
       DEEP_MATCH_TIMEOUT_SECONDS: ${DEEP_MATCH_TIMEOUT_SECONDS:-45}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-no-reply@campusmatch.local}
+      SMTP_START_TLS: ${SMTP_START_TLS:-true}
+      EMAIL_VERIFICATION_EXPIRE_HOURS: ${EMAIL_VERIFICATION_EXPIRE_HOURS:-24}
+      EMAIL_TOKEN_SECRET: ${EMAIL_TOKEN_SECRET:-}
     volumes:
       - uploads_data:/app/backend/uploads
     depends_on:

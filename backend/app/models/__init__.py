@@ -5,6 +5,7 @@ from backend.app.models.entities import (
     MatchingRun,
     Message,
     Notification,
+    RefreshToken,
     User,
     UserBlock,
     UserInterest,
@@ -22,6 +23,7 @@ __all__ = [
     "MatchingRun",
     "Message",
     "Notification",
+    "RefreshToken",
     "WeeklyRecommendation",
     "WeeklyRecommendationRun",
 ]

@@ -1,17 +1,19 @@
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from sqlalchemy import or_, select
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.config import settings
 from backend.app.core.database import get_db
 from backend.app.core.dependencies import get_current_user
 from backend.app.core.security import hash_password, verify_password
-from backend.app.models.entities import Interest, Match, User, WeeklyRecommendation
+from backend.app.models.entities import Interest, Match, RefreshToken, User, WeeklyRecommendation
 from backend.app.schemas.auth import ChangePasswordRequest
 from backend.app.schemas.user import InterestOut, OwnProfile, ProfileUpdate, UserProfile
+from backend.app.services.audit import audit_event
 from backend.app.services.pairing import ACTIVE_PAIR_STATUSES
 from backend.app.services.recommendations import invalidate_user_recommendations, weekly_period_start
 from backend.app.services.users import is_profile_complete, own_profile_from_user, profile_from_user
@@ -21,9 +23,9 @@ router = APIRouter(tags=["资料"])
 
 
 async def read_valid_image(upload: UploadFile, max_bytes: int, label: str) -> tuple[bytes, str]:
-    allowed = {"image/jpeg": ".jpg", "image/png": ".png"}
+    allowed = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
     if upload.content_type not in allowed:
-        raise HTTPException(status_code=415, detail=f"{label}仅支持 JPG 或 PNG")
+        raise HTTPException(status_code=415, detail=f"{label}仅支持 JPG、PNG 或 WebP")
     content = await upload.read(max_bytes + 1)
     if len(content) > max_bytes:
         raise HTTPException(status_code=413, detail=f"{label}文件过大")
@@ -31,8 +33,14 @@ async def read_valid_image(upload: UploadFile, max_bytes: int, label: str) -> tu
         raise HTTPException(status_code=422, detail=f"{label}文件为空")
     is_jpeg = upload.content_type == "image/jpeg" and content.startswith(b"\xff\xd8\xff")
     is_png = upload.content_type == "image/png" and content.startswith(b"\x89PNG\r\n\x1a\n")
-    if not (is_jpeg or is_png):
-        raise HTTPException(status_code=415, detail=f"文件内容不是有效的 JPG 或 PNG {label}")
+    is_webp = (
+        upload.content_type == "image/webp"
+        and len(content) >= 12
+        and content.startswith(b"RIFF")
+        and content[8:12] == b"WEBP"
+    )
+    if not (is_jpeg or is_png or is_webp):
+        raise HTTPException(status_code=415, detail=f"文件内容不是有效的 JPG、PNG 或 WebP {label}")
     return content, allowed[upload.content_type]
 
 
@@ -58,6 +66,8 @@ async def update_my_profile(
     values = payload.model_dump(exclude_unset=True, exclude={"interest_ids"})
     if "email" in values and values["email"]:
         values["email"] = str(values["email"]).lower()
+        if values["email"] != user.email:
+            raise HTTPException(status_code=400, detail="邮箱已用于登录验证，暂不支持在资料页直接修改")
     if "phone" in values or "email" in values:
         conditions = []
         if values.get("phone"):
@@ -98,7 +108,7 @@ async def upload_avatar(
 ) -> OwnProfile:
     content, extension = await read_valid_image(avatar, settings.max_avatar_bytes, "头像")
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"{user.id}-{uuid4().hex}{extension}"
+    filename = f"{uuid4().hex}{extension}"
     path = settings.upload_dir / filename
     path.write_bytes(content)
     previous = user.avatar_url
@@ -127,7 +137,7 @@ async def upload_real_photos(
     try:
         for photo in photos:
             content, extension = await read_valid_image(photo, settings.max_real_photo_bytes, "真实照片")
-            filename = f"real-{user.id}-{uuid4().hex}{extension}"
+            filename = f"real-{uuid4().hex}{extension}"
             path = settings.upload_dir / filename
             path.write_bytes(content)
             created_paths.append(path)
@@ -153,7 +163,7 @@ async def delete_real_photo(
     photos.remove(url)
     user.real_photos = photos
     await db.commit()
-    if url.startswith("/uploads/real-"):
+    if url.startswith("/uploads/"):
         path = settings.upload_dir / Path(url).name
         path.unlink(missing_ok=True)
     return own_profile_from_user(user)
@@ -162,14 +172,30 @@ async def delete_real_photo(
 @router.post("/profile/change-password")
 async def change_password(
     payload: ChangePasswordRequest,
+    request: Request,
+    response: Response,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
     if not verify_password(payload.current_password, user.password_hash):
         raise HTTPException(status_code=400, detail="当前密码不正确")
     user.password_hash = hash_password(payload.new_password)
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=datetime.now(UTC))
+    )
     await db.commit()
-    return {"message": "密码已修改"}
+    for name in (settings.access_cookie_name, settings.refresh_cookie_name):
+        response.delete_cookie(
+            name,
+            path="/",
+            secure=settings.force_https,
+            httponly=True,
+            samesite="lax",
+        )
+    audit_event(request, "password_change", user_id=user.id)
+    return {"message": "密码已修改，请重新登录"}
 
 
 @router.get(

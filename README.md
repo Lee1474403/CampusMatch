@@ -5,7 +5,7 @@ CampusMatch 是一个面向高校学生的 Web 端异性交友平台。当前匹
 ## 核心流程
 
 ```text
-注册/登录
+注册 → 邮箱验证 → 登录
   → 完善昵称、头像、学校、年级、性别、兴趣（专业/院系选填）
   →（可选）完成 26 道恋爱价值观问卷，自动获得深度匹配资格
   → 手动开启匹配
@@ -48,9 +48,11 @@ Token 控制采用“每周全局调用上限”：默认最多调用 Qwen 10 �
 
 ## 已实现功能
 
-- 唯一账号、手机号或邮箱登录；JWT access token + refresh token 自动续期
+- 注册邮箱验证；未验证账号不能登录，验证链接有效期 24 小时
+- JWT Access Token（2 小时）与可撤销 Refresh Token（7 天）均存入 HttpOnly Cookie，刷新时自动轮换
+- 登录、注册和重发验证邮件接口限流，关键操作输出不含密码、JWT 和完整联系方式的审计日志
 - bcrypt 密码哈希和密码强度校验
-- 个人资料编辑、9 大分类约 90 个细分兴趣、关键词搜索、头像上传
+- 个人资料编辑、9 大分类约 90 个细分兴趣、关键词搜索、头像与真实照片安全上传（JPG/PNG/WebP，单文件 2MB）
 - 可选的公开身高（cm）与体重（kg），在推荐卡片和配对资料中展示
 - 最多 6 张真实照片和可选微信号，默认均作为隐私信息
 - 具体标签 Jaccard 相似度为主、分类相似度为辅（兴趣合计 60%）+ 地域相似度（30%，当前所在地与家乡各占地域分50%）+ 年龄接近（10%）
@@ -100,9 +102,10 @@ backend/migrations/versions/20260730_0009_user_school.py
 backend/migrations/versions/20260730_0010_account_rename.py
 backend/migrations/versions/20260817_0011_weekly_recommendations.py
 backend/migrations/versions/20260817_0012_user_body_metrics.py
+backend/migrations/versions/20260817_0013_security_hardening.py
 ```
 
-迁移会保留原用户、配对和聊天记录；`0011` 新增每周单向推荐表和批次运行记录表，`0012` 新增可选的公开身高与体重字段。升级前已经存在的 `pending_heartbeat` 配对仍按旧规则完成或失效，新生成的推荐只有在双方选择彼此时才创建正式聊天配对。
+迁移会保留原用户、配对和聊天记录；`0011` 新增每周单向推荐表和批次运行记录表，`0012` 新增可选的公开身高与体重字段，`0013` 新增邮箱验证状态与数据库 Refresh Token 表。升级前已经存在的用户会自动标记为邮箱已验证，避免老账号被锁定；只有升级后新注册的账号必须完成验证。
 
 学校、所在地和家乡等必填资料完整后才能开启每周匹配；专业/院系可以留空。
 
@@ -123,6 +126,24 @@ uv run uvicorn backend.app.main:app --reload
 - 健康检查：[http://localhost:8000/health](http://localhost:8000/health)
 
 首次使用空数据库时会自动创建表，并根据 `SEED_DEMO_DATA` 写入演示数据。
+
+### 配置邮箱验证
+
+新用户注册依赖 SMTP，未配置或发送失败时注册接口返回 `503`，不会留下无法验证的半成品账号。QQ 邮箱通常使用授权码而不是登录密码：
+
+```env
+SMTP_HOST=smtp.qq.com
+SMTP_PORT=465
+SMTP_USER=your_email@qq.com
+SMTP_PASSWORD=your_authorization_code
+SMTP_FROM=your_email@qq.com
+EMAIL_VERIFICATION_EXPIRE_HOURS=24
+EMAIL_TOKEN_SECRET=另一个独立的强随机字符串
+```
+
+验证链接使用 `FRONTEND_URL` 生成，本地开发应为 `http://localhost:5173`，生产环境应为实际的 `https://你的域名`。不要将 `.env`、SMTP 授权码、`SECRET_KEY` 或大模型密钥提交到 Git。
+
+认证 Cookie 在开发环境使用 `Secure=false`，生产环境通过 `FORCE_HTTPS=true` 自动启用 `Secure`，并始终使用 `HttpOnly` 与 `SameSite=Lax`。前端不会读取或保存 JWT。
 
 ### 配置 Qwen 深度匹配
 
@@ -191,6 +212,12 @@ POST /api/matching/run-now
 ## 主要 API
 
 ```text
+POST  /api/auth/register                     注册并发送验证邮件
+POST  /api/auth/verify-email                 验证邮箱
+POST  /api/auth/resend-verification          过期后重发验证邮件
+POST  /api/auth/login                        登录并写入 HttpOnly Cookie
+POST  /api/auth/refresh                      轮换数据库 Refresh Token
+POST  /api/auth/logout                       撤销 Refresh Token 并清除 Cookie
 GET   /api/matching/status                  当前资格、开关、每周推荐和有效配对
 PATCH /api/matching/settings                开启或关闭匹配
 GET   /api/recommendations                  本周仍可查看的推荐列表
@@ -205,7 +232,7 @@ GET   /api/matches/{id}/messages            聊天记录
 POST  /api/matches/{id}/block               屏蔽配对对象并立即结束配对
 GET   /api/blocks                            获取我的屏蔽列表
 DELETE /api/blocks/{user_id}                 解除对指定用户的屏蔽
-WS    /api/ws/chat/{id}?token=...           实时聊天
+WS    /api/ws/chat/{id}                     实时聊天（自动携带认证 Cookie）
 POST  /api/profile/real-photos              上传真实照片
 DELETE /api/profile/real-photos?url=...      删除真实照片
 ```
@@ -233,13 +260,30 @@ backend/app/data/blocked_words/
 
 ## Docker Compose
 
+本地 HTTP 调试可继续使用：
+
 ```bash
 docker compose up --build -d
 ```
 
 - Web 前端：[http://localhost:8080](http://localhost:8080)
 - 后端 API：[http://localhost:8000/docs](http://localhost:8000/docs)
-- Compose 使用 PostgreSQL 17，并持久化数据库与上传照片
+- Compose 使用 PostgreSQL 17，并持久化数据库与上传照片。这个默认文件仅用于本地/内网 HTTP 调试。
+- 后端容器启动时会先自动运行 `alembic upgrade head`，迁移成功后才启动 FastAPI。
+
+公网 HTTPS 部署使用独立配置，仓库已预置 `campusmatch.xyz` 的 Nginx 配置：
+
+1. 将 `campusmatch.xyz` 和 `www.campusmatch.xyz` 解析到服务器公网 IP，并开放 80、443 端口。中国大陆服务器还需先完成 ICP 备案。
+2. 使用 Certbot 申请证书：`sudo certbot certonly --standalone -d campusmatch.xyz -d www.campusmatch.xyz`。
+3. 确认证书位于 `/etc/letsencrypt/live/campusmatch.xyz/`。
+4. 在服务器 `.env` 设置 `DOMAIN=campusmatch.xyz`、强随机 `SECRET_KEY`、`EMAIL_TOKEN_SECRET`、`POSTGRES_PASSWORD` 和 SMTP 配置。
+5. 使用正式 HTTPS Compose 启动：
+
+```bash
+docker compose -f docker-compose.https.yml up --build -d
+```
+
+HTTPS 配置会执行 80 → 443 重定向、HSTS、TLS 1.2/1.3、反向代理 WebSocket，并只在 Docker 内网访问后端；上传目录由 Nginx 只读提供，脚本扩展名会被拒绝。
 
 公网部署前必须：
 
@@ -295,6 +339,8 @@ CampusMatch/
 - `weekly_recommendation_runs` 记录每周每个批次的状态、人数、推荐数、深度调用数和错误信息。
 - 服务在周六重启时会补执行当天已经到点但尚未完成的批次；周日及以后不会回补上一周任务。
 - 旧版 `Like` 表暂时保留用于历史数据兼容，新流程不再写入该表。
-- 未配置 SMTP 时邮件会跳过，但站内通知不受影响。
+- 新用户邮箱验证邮件属于关键邮件：SMTP 未配置或发送失败时注册/重发接口返回 `503`；配对提醒等非关键邮件仍会跳过，站内通知不受影响。
+- 当前接口限流保存在单个后端进程内；如果以后部署多个 API 实例，应将限流状态迁移到 Redis。
+- 自己查看资料以及聊天满 7 天后的授权联系人可以看到完整联系方式；其他公开资料、审计日志和提示信息不会返回或记录完整手机号、邮箱。
 - 未配置 DashScope 密钥或 Qwen 调用失败时，系统使用初步分数完成本周推荐。
 - 默认每周最多发起 10 次 Qwen 调用；可通过 `.env` 调整候选池、每周调用上限、权重与超时。

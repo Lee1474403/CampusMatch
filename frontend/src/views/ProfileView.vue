@@ -204,8 +204,8 @@ function selectAvatar(event) {
   const file = event.target.files?.[0]
   event.target.value = ''
   if (!file) return
-  if (!['image/jpeg', 'image/png'].includes(file.type) || file.size > 2 * 1024 * 1024) {
-    ElMessage.error('请选择不超过 2MB 的 JPG 或 PNG 图片')
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+    ElMessage.error('请选择不超过 2MB 的 JPG、PNG 或 WebP 图片')
     return
   }
   cropFile.value = file
@@ -230,8 +230,8 @@ async function uploadAvatar(file) {
 async function uploadRealPhotos(event) {
   const files = Array.from(event.target.files || [])
   if (!files.length) return
-  if (files.some((file) => !['image/jpeg', 'image/png'].includes(file.type) || file.size > 5 * 1024 * 1024)) {
-    ElMessage.error('真实照片仅支持不超过 5MB 的 JPG 或 PNG')
+  if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024)) {
+    ElMessage.error('真实照片仅支持不超过 2MB 的 JPG、PNG 或 WebP')
     event.target.value = ''
     return
   }
@@ -263,10 +263,12 @@ async function deleteRealPhoto(url) {
 async function changePassword() {
   try {
     await api.post('/profile/change-password', passwordForm)
-    ElMessage.success('密码已修改，请记住新密码')
+    auth.clearSession()
+    ElMessage.success('密码已修改，请使用新密码重新登录')
     passwordDialog.value = false
     passwordForm.current_password = ''
     passwordForm.new_password = ''
+    router.replace('/auth')
   } catch (error) {
     ElMessage.error(errorMessage(error))
   }
@@ -286,13 +288,18 @@ onMounted(() => load().catch((error) => ElMessage.error(errorMessage(error))))
       <header class="page-intro compact"><div><p class="eyebrow">我的校园名片</p><h1>把真实的你，<span>认真写下来</span></h1></div></header>
       <div class="profile-layout">
         <aside class="identity-card">
-          <div class="avatar-editor">
-            <AvatarBubble :src="auth.user?.avatar_url" :name="auth.user?.nickname" :size="126" />
-            <label class="camera-button" :class="{ loading: uploading }" title="选择并裁剪头像"><el-icon><Camera /></el-icon><input type="file" accept="image/jpeg,image/png" @change="selectAvatar" /></label>
-          </div>
-          <h2>{{ auth.user?.nickname }}</h2><p>{{ auth.user?.school || '学校待完善' }} · {{ auth.user?.grade }}<template v-if="auth.user?.department"> · {{ auth.user.department }}</template></p>
-          <div class="completion-badge" :class="{ complete: auth.user?.profile_complete }">
-            {{ auth.user?.profile_complete ? '✓ 已具备匹配资格' : `还需完善：${auth.user?.missing_profile_fields?.join('、') || '资料'}` }}
+          <div class="identity-card-head">
+            <div class="avatar-editor">
+              <AvatarBubble :src="auth.user?.avatar_url" :name="auth.user?.nickname" :size="126" />
+              <label class="camera-button" :class="{ loading: uploading }" title="选择并裁剪头像"><el-icon><Camera /></el-icon><input type="file" accept="image/jpeg,image/png,image/webp" @change="selectAvatar" /></label>
+            </div>
+            <div class="identity-heading">
+              <h2>{{ auth.user?.nickname }}</h2>
+              <p>{{ auth.user?.school || '学校待完善' }} · {{ auth.user?.grade }}<template v-if="auth.user?.department"> · {{ auth.user.department }}</template></p>
+              <div class="completion-badge" :class="{ complete: auth.user?.profile_complete }">
+                {{ auth.user?.profile_complete ? '✓ 已具备匹配资格' : `还需完善：${auth.user?.missing_profile_fields?.join('、') || '资料'}` }}
+              </div>
+            </div>
           </div>
           <router-link class="deep-profile-card" :class="{ complete: questionnaireStatus?.completed }" to="/questionnaire">
             <span>{{ questionnaireStatus?.completed ? '✦' : '◌' }}</span>
@@ -301,8 +308,10 @@ onMounted(() => load().catch((error) => ElMessage.error(errorMessage(error))))
           </router-link>
           <div class="identity-lines"><span><b>账号</b>{{ auth.user?.account }}</span><span><b>性别</b>{{ auth.user?.gender === 'male' ? '男生' : '女生' }}</span><span><b>年龄</b>{{ auth.user?.age }} 岁</span><span><b>身高</b>{{ auth.user?.height_cm ? `${auth.user.height_cm} cm` : '未填写' }}</span><span><b>体重</b>{{ auth.user?.weight_kg ? `${auth.user.weight_kg} kg` : '未填写' }}</span><span><b>学校</b>{{ auth.user?.school || '待完善' }}</span><span><b>专业/院系</b>{{ auth.user?.department || '未填写' }}</span><span><b>所在地</b>{{ auth.user?.location_province && auth.user?.location_city ? `${auth.user.location_province} · ${auth.user.location_city}` : '待完善' }}</span><span><b>家乡</b>{{ auth.user?.hometown_province && auth.user?.hometown_city ? `${auth.user.hometown_province} · ${auth.user.hometown_city}` : '待完善' }}</span></div>
           <p class="privacy-note">🛡️ 身高和体重属于公开资料，会显示在推荐卡片中。账号不会向其他用户公开；联系方式和真实照片只有在双方心动并连续聊天满7天后才会公开。</p>
-          <button class="security-link" @click="passwordDialog = true"><el-icon><Lock /></el-icon> 修改密码</button>
-          <button class="logout-link" @click="logout"><el-icon><SwitchButton /></el-icon> 退出登录</button>
+          <div class="identity-actions">
+            <button class="security-link" @click="passwordDialog = true"><el-icon><Lock /></el-icon> 修改密码</button>
+            <button class="logout-link" @click="logout"><el-icon><SwitchButton /></el-icon> 退出登录</button>
+          </div>
         </aside>
 
         <div class="profile-form-card">
@@ -312,7 +321,7 @@ onMounted(() => load().catch((error) => ElMessage.error(errorMessage(error))))
               <el-form-item label="昵称 *"><el-input v-model="form.nickname" maxlength="40" /></el-form-item>
               <el-form-item label="真实姓名（可选，仅自己可见）"><el-input v-model="form.real_name" maxlength="40" placeholder="不会向其他用户公开" /></el-form-item>
               <el-form-item label="手机号 *"><el-input v-model="form.phone" /></el-form-item>
-              <el-form-item label="邮箱 *"><el-input v-model="form.email" /></el-form-item>
+              <el-form-item label="邮箱（已验证）"><el-input v-model="form.email" disabled /><small class="account-hint">邮箱用于登录与安全验证，暂不支持在资料页直接修改。</small></el-form-item>
               <el-form-item label="微信号（隐私信息）"><el-input v-model="form.wechat" placeholder="可选，解锁后才公开" /></el-form-item>
               <el-form-item label="生日 *"><el-date-picker v-model="form.birth_date" value-format="YYYY-MM-DD" type="date" /></el-form-item>
               <el-form-item label="年级 *"><el-input v-model="form.grade" placeholder="例如 大一、研二" /></el-form-item>
@@ -361,7 +370,7 @@ onMounted(() => load().catch((error) => ElMessage.error(errorMessage(error))))
             <p class="section-helper">这些照片不会出现在每周推荐卡片中，只有双向心动并连续聊天满7天后才会向对方公开。</p>
             <div class="real-photo-grid">
               <div v-for="photo in auth.user?.real_photos" :key="photo" class="real-photo-item"><img :src="photo" alt="我的真实照片" /><button type="button" aria-label="删除照片" @click="deleteRealPhoto(photo)">×</button></div>
-              <label v-if="(auth.user?.real_photos?.length || 0) < 6" class="real-photo-upload" :class="{ loading: uploadingReal }"><span>＋</span><b>{{ uploadingReal ? '上传中' : '添加照片' }}</b><small>JPG/PNG · 单张5MB</small><input type="file" multiple accept="image/jpeg,image/png" @change="uploadRealPhotos" /></label>
+              <label v-if="(auth.user?.real_photos?.length || 0) < 6" class="real-photo-upload" :class="{ loading: uploadingReal }"><span>＋</span><b>{{ uploadingReal ? '上传中' : '添加照片' }}</b><small>JPG/PNG/WebP · 单张2MB</small><input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="uploadRealPhotos" /></label>
             </div>
           </div>
           <div class="interest-section">

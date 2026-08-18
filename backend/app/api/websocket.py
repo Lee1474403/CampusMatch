@@ -1,6 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy import or_, select, update
 
+from backend.app.config import settings
 from backend.app.core.database import AsyncSessionLocal
 from backend.app.core.security import decode_token
 from backend.app.models.entities import Match, Message, Notification, User
@@ -13,7 +14,15 @@ router = APIRouter(tags=["WebSocket"])
 
 
 @router.websocket("/ws/chat/{match_id}")
-async def chat_socket(websocket: WebSocket, match_id: int, token: str) -> None:
+async def chat_socket(websocket: WebSocket, match_id: int) -> None:
+    origin = websocket.headers.get("origin")
+    if origin and origin.rstrip("/") not in settings.cors_origins:
+        await websocket.close(code=4403, reason="不允许的连接来源")
+        return
+    token = websocket.cookies.get(settings.access_cookie_name)
+    if not token:
+        await websocket.close(code=4401, reason="请先登录")
+        return
     try:
         user_id = int(decode_token(token)["sub"])
     except (ValueError, TypeError):
@@ -21,7 +30,13 @@ async def chat_socket(websocket: WebSocket, match_id: int, token: str) -> None:
         return
 
     async with AsyncSessionLocal() as db:
-        user = await db.scalar(select(User).where(User.id == user_id, User.is_active.is_(True)))
+        user = await db.scalar(
+            select(User).where(
+                User.id == user_id,
+                User.is_active.is_(True),
+                User.is_email_verified.is_(True),
+            )
+        )
         match = await db.scalar(
             select(Match).where(
                 Match.id == match_id,

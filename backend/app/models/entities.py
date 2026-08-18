@@ -32,6 +32,9 @@ class User(Base):
     account: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     phone: Mapped[str] = mapped_column(String(24), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", index=True)
+    email_verification_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True)
+    verification_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     nickname: Mapped[str] = mapped_column(String(40), index=True)
     real_name: Mapped[str | None] = mapped_column(String(40), nullable=True)
@@ -61,6 +64,25 @@ class User(Base):
     interests: Mapped[list["Interest"]] = relationship(
         secondary="user_interests", back_populates="users", lazy="selectin"
     )
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    __table_args__ = (
+        Index("ix_refresh_tokens_user_active", "user_id", "revoked_at", "expires_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    user: Mapped[User] = relationship(lazy="selectin")
 
 
 class Interest(Base):

@@ -87,6 +87,7 @@ def own_profile_from_user(user: User) -> OwnProfile:
         birth_date=user.birth_date,
         created_at=user.created_at,
         is_superuser=user.is_superuser,
+        is_email_verified=bool(user.is_email_verified),
         is_matching_enabled=user.is_matching_enabled,
         profile_complete=is_profile_complete(user),
         missing_profile_fields=missing_profile_fields(user),

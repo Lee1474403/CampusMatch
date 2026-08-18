@@ -35,13 +35,13 @@ async function submitLogin() {
 async function submitRegister() {
   submitting.value = true
   try {
-    await auth.register({
+    const result = await auth.register({
       ...registerForm,
       real_name: registerForm.real_name || null,
       department: registerForm.department.trim() || null,
     })
-    ElMessage.success('注册成功，先选几个喜欢的标签吧')
-    router.replace('/profile')
+    ElMessage.success('注册成功，验证邮件已发送')
+    router.replace({ name: 'verify-email', query: { sent: '1', email: result.email } })
   } catch (error) {
     ElMessage.error(errorMessage(error, '注册失败'))
   } finally {
@@ -93,6 +93,7 @@ async function submitRegister() {
             <span>✨ 试用账号已填好</span>
             <small>男生：20260006　女生：20260001　密码：Campus123</small>
           </div>
+          <p class="verification-link"><router-link to="/verify-email">验证链接已过期或没有收到邮件？重新发送</router-link></p>
           <p class="safety-note"><el-icon><Lock /></el-icon> 双方心动后开放聊天，连续聊满7天才解锁隐私</p>
         </div>
 
@@ -106,7 +107,7 @@ async function submitRegister() {
               </el-form-item>
               <el-form-item label="昵称"><el-input v-model="registerForm.nickname" placeholder="想让大家怎么称呼你" /></el-form-item>
               <el-form-item label="手机号"><el-input v-model="registerForm.phone" placeholder="用于登录" /></el-form-item>
-              <el-form-item label="校园邮箱"><el-input v-model="registerForm.email" placeholder="name@university.edu.cn" /></el-form-item>
+              <el-form-item label="邮箱（必填，需验证）"><el-input v-model="registerForm.email" type="email" autocomplete="email" placeholder="name@example.com" /></el-form-item>
               <el-form-item label="密码"><el-input v-model="registerForm.password" type="password" show-password placeholder="至少 8 位，含字母和数字" /></el-form-item>
               <el-form-item label="性别（注册后不可改）">
                 <el-radio-group v-model="registerForm.gender"><el-radio-button value="male">男生</el-radio-button><el-radio-button value="female">女生</el-radio-button></el-radio-group>
@@ -118,7 +119,7 @@ async function submitRegister() {
               <el-form-item label="年级"><el-input v-model="registerForm.grade" placeholder="例如 大一、研二" /></el-form-item>
             </div>
             <button class="primary-pill full" :disabled="submitting" @click.prevent="submitRegister">
-              {{ submitting ? '正在创建…' : '创建账号' }} <el-icon><ArrowRight /></el-icon>
+              {{ submitting ? '正在创建…' : '创建账号并发送验证邮件' }} <el-icon><ArrowRight /></el-icon>
             </button>
           </el-form>
           <p class="agreement">注册即表示你愿意共同维护真实、尊重、健康的校园社交环境。</p>
@@ -127,3 +128,9 @@ async function submitRegister() {
     </section>
   </div>
 </template>
+
+<style scoped>
+.verification-link { margin: 14px 0 0; text-align: center; }
+.verification-link a { color: #3e9891; font-size: 13px; font-weight: 800; text-decoration: none; }
+.verification-link a:hover { color: #ff6b6b; }
+</style>

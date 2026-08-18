@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +16,7 @@ from backend.app.schemas.match import (
     WeeklyHeartDecisionResponse,
     WeeklyRecommendationOut,
 )
+from backend.app.services.audit import audit_event
 from backend.app.services.pairing import (
     CHAT_ENABLED_STATUSES,
     ensure_utc,
@@ -126,6 +127,7 @@ async def matching_status(
 @router.patch("/matching/settings", response_model=MatchingToggleResponse)
 async def update_matching_setting(
     payload: MatchingToggleRequest,
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> MatchingToggleResponse:
@@ -145,6 +147,12 @@ async def update_matching_setting(
         await invalidate_user_recommendations(db, user.id)
         message = "已关闭匹配，本周推荐同时失效"
     await db.commit()
+    audit_event(
+        request,
+        "matching_toggle",
+        user_id=user.id,
+        detail="enabled" if user.is_matching_enabled else "disabled",
+    )
     return MatchingToggleResponse(
         matching_enabled=user.is_matching_enabled,
         message=message,
@@ -158,6 +166,7 @@ async def update_matching_setting(
 )
 async def choose_weekly_heart(
     recommendation_id: int,
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> WeeklyHeartDecisionResponse:
@@ -169,6 +178,12 @@ async def choose_weekly_heart(
         )
     except RecommendationSelectionError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    audit_event(
+        request,
+        "weekly_heart",
+        user_id=user.id,
+        detail=f"recommendation_id={recommendation_id},mutual={mutual}",
+    )
     return WeeklyHeartDecisionResponse(
         recommendation=recommendation_out(recommendation),
         mutual_match=mutual,
@@ -181,6 +196,7 @@ async def choose_weekly_heart(
 async def update_heart_decision(
     pair_id: int,
     payload: HeartDecisionRequest,
+    request: Request,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> HeartDecisionResponse:
@@ -220,6 +236,12 @@ async def update_heart_decision(
             ]
         )
     await db.commit()
+    audit_event(
+        request,
+        "legacy_heart",
+        user_id=user.id,
+        detail=f"pair_id={pair_id},hearted={payload.hearted},mutual={became_mutual}",
+    )
     await manager.send_to_users(
         {pair.user1_id, pair.user2_id},
         {"type": "pair_status", "match_id": pair.id, "status": pair.status},
@@ -292,8 +314,9 @@ async def list_matches(
 
 @router.post("/matching/run-now")
 async def run_matching_now(
+    request: Request,
     batch_index: int | None = Query(default=None, ge=0),
-    _: User = Depends(get_current_superuser),
+    admin: User = Depends(get_current_superuser),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, int | str]:
     batches = range(len(settings.weekly_batch_hours)) if batch_index is None else [batch_index]
@@ -307,6 +330,12 @@ async def run_matching_now(
             force=True,
         )
         created_count += len(created)
+    audit_event(
+        request,
+        "matching_run_now",
+        user_id=admin.id,
+        detail=f"batch_index={batch_index},created={created_count}",
+    )
     return {
         "message": "手动每周推荐任务已完成",
         "batches_processed": len(list(batches)),

@@ -78,8 +78,12 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=72)
 
 
-class RefreshRequest(BaseModel):
-    refresh_token: str
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(min_length=32, max_length=512)
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
 
 
 class ChangePasswordRequest(BaseModel):
@@ -96,8 +100,15 @@ class ChangePasswordRequest(BaseModel):
         return value
 
 
-class TokenPair(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
+class AuthResponse(BaseModel):
+    message: str
     expires_in: int
+
+
+class RegistrationResponse(BaseModel):
+    message: str
+    email: str
+
+
+class VerificationResponse(BaseModel):
+    message: str
