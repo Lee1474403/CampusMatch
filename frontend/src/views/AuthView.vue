@@ -13,7 +13,7 @@ const auth = useAuthStore()
 const mode = ref('login')
 const submitting = ref(false)
 
-const loginForm = reactive({ identifier: '20260006', password: 'Campus123' })
+const loginForm = reactive({ identifier: '', password: '' })
 const registerForm = reactive({
   account: '', phone: '', email: '', password: '', gender: 'male', real_name: '', nickname: '',
   birth_date: '2005-01-01', school: '', department: '', grade: '',
@@ -89,10 +89,6 @@ async function submitRegister() {
               {{ submitting ? '正在登录…' : '进入 CampusMatch' }} <el-icon><ArrowRight /></el-icon>
             </button>
           </el-form>
-          <div class="demo-account">
-            <span>✨ 试用账号已填好</span>
-            <small>男生：20260006　女生：20260001　密码：Campus123</small>
-          </div>
           <p class="verification-link"><router-link to="/verify-email">验证链接已过期或没有收到邮件？重新发送</router-link></p>
           <p class="safety-note"><el-icon><Lock /></el-icon> 双方心动后开放聊天，连续聊满7天才解锁隐私</p>
         </div>

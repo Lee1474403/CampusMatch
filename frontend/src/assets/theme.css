@@ -162,9 +162,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .form-heading p { margin-bottom: 6px; color: var(--coral-dark); font-weight: 800; }
 .form-heading h2 { margin-bottom: 28px; font-size: 34px; }
 .form-stage .el-form-item { margin-bottom: 17px; }
-.demo-account { display: flex; flex-direction: column; gap: 4px; margin-top: 22px; padding: 13px 16px; background: #effaf8; border-radius: 13px; color: #347f7a; }
-.demo-account span { font-weight: 800; font-size: 13px; }
-.demo-account small { font-size: 11px; }
 .safety-note, .agreement { display: flex; justify-content: center; gap: 6px; margin: 18px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
 .register-stage .el-date-editor { width: 100%; }
